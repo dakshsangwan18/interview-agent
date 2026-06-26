@@ -1,10 +1,11 @@
 import express from "express";
 import { PreInterviewBody } from "./types";
+import axios from "axios";
 
 const app = express();
 app.use(express.json());
 
-app.post("/api/v1/pre-interview", (req, res) => {
+app.post("/api/v1/pre-interview", async (req, res) => {
     const {success, data } = PreInterviewBody.safeParse(req.body);
 
     if(!success) {
@@ -14,12 +15,23 @@ app.post("/api/v1/pre-interview", (req, res) => {
         return
     }
 
-
-    const githubUrl = data.gihtub;
-    const linkedinUrl = data.linkedin;
+    //TODO: URL can be malformed, probably use an SLM here?
+    const githubUrl = data.gihtub.endsWith("/") ? data.gihtub.slice(0, -1) : data.gihtub;
+    const linkedinUrl = data.linkedin.endsWith("/") ? data.linkedin.slice(0, -1) : data.linkedin;
 
     const githubUsername = githubUrl.split("/").pop();
     const linkedinUsername = linkedinUrl.split("/").pop();
+
+    const userRepos = await axios.get(`https://api.github.com/users/${githubUsername}/repos`)
+    const filteredUserRepos = userRepos.data.map((x: any) => ({
+        description: x.description,
+        name: x.name,
+        full_name: x.full_name,
+        starCount: x.stargazers_count
+    }))
+
+
+
 })
 
 app.listen(3001);
